@@ -62,7 +62,7 @@ try:
     lastrun = int(lastrun)
 except  IndexError:
      lastrun=1
-runTime = int(time.time())
+runTime = lastrun
 if splitBy.lower() == "year":
     splitFormat = "%Y "
 elif splitBy.lower() == "month":
@@ -102,6 +102,8 @@ for f in os.listdir(flistDirectory):
                 Path(logDirectory+"\\"+fName+"\\"+fileTime+fName+logExt).touch()
                 with open(logDirectory+"\\"+fName+"\\"+fileTime+fName+logExt,"a", errors='ignore') as fw:
                     while True:
+                        if lineTime > runTime:
+                            runTime = lineTime
                         currentLine = logLine()
                         currentLine.setTime(lineTime)
                         currentLine.isAction(fr.read(1))

@@ -6,7 +6,7 @@ Parser for F-Chat 3.0 database style logs
                                      F-Chat 3.0 Log Parser                                      
                                        Author: GyroTech                                         
                                                                                                 
-                                        1.0-8/3/2022                                            
+                                        1.1-8/4/2022                                            
                                                                                                 
   This script parses out the database logs that fchat spits out, and then turns them into       
   plain text. The script automatically remembers when you last ran it, and will append to       

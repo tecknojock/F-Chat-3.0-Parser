@@ -22,10 +22,14 @@ import traceback
 
 
 #Variables for log locations
-flistDirectory = "C:\\Users\\user\\Documents\\New folder\\Test"
-logDirectory = "C:\\Users\\user\\Documents\\New folder\\Test2"
+flistDirectory = "C:\\Users\\USER\\AppData\\Roaming\\fchat\\data" # Link to flist log directory
+logDirectory = "C:\\Users\\USER\\Documents\\F-List Logs" # Link to where you'd like the logs to go.
 logExt = ".log"
 splitBy = "month" #accepts Day, Month, Year and None
+folderStructure = 1 # 0 means you're pointing directly to the character you want logs from.
+                    # For 1 or 2 point to the root f-list logs folder.
+                    # 1 means logs will be outputtted as {Your character}/{Other character}
+                    # 2 means logs will be outputted as {Other Character}/{Your Character}
 
 
 
@@ -72,55 +76,75 @@ elif splitBy.lower() == "day":
 elif splitBy.lower() == "none":
     splitFormat = ""
 else:
-    raise Exception("SplitBy not a valid value")      
-for f in os.listdir(flistDirectory):
-    if re.search("\.", f):
-        continue
+    raise Exception("SplitBy not a valid value")   
+if folderStructure == 0:
+    flistCharDirectory = [[flistDirectory,"",""]]
+elif folderStructure == 1:
+    flistCharDirectory = os.listdir(flistDirectory)
+    temp1 = [flistDirectory + "\\" + f + "\\logs" for f in flistCharDirectory ]
+    temp2 = ["\\" + f for f in flistCharDirectory]
+    flistCharDirectory = [[temp1[i], temp2[i], ""] for i in range(len(temp1))]
+elif folderStructure == 2:
+    flistCharDirectory = os.listdir(flistDirectory)
+    temp1 = [flistDirectory + "\\" + f + "\\logs" for f in flistCharDirectory ]
+    temp2 = ["\\" + f for f in flistCharDirectory]
+    flistCharDirectory = [[temp1[i], "", temp2[i]] for i in range(len(temp1))]
+else:
+    raise Exception("Folder Structure flag is invalid")
+for char in flistCharDirectory:    
     try:
-        with open(flistDirectory +"\\"+ f, "rb") as fr:
-            fileLength = os.path.getsize(flistDirectory +"\\"+ f)
-            with open(flistDirectory +"\\"+ f+".idx", "rb") as idx:
-                offset = int.from_bytes(idx.read(1),"big")
-                fName = idx.read(offset).decode("utf-8")
-                fName = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", fName).strip()
-                print(f +", " + fName)
-            if lastrun != 1:
-                fr.seek(0,2)
-                while True:
-                    fr.seek(-2,1)
-                    lineLength = int.from_bytes(fr.read(2),"little")+2
-                    fr.seek(-lineLength,1)
+        for f in os.listdir(char[0]):
+            if re.search("\.", f):
+                continue
+            try:
+                with open(char[0] +"\\"+ f, "rb") as fr:
+                    fileLength = os.path.getsize(char[0] +"\\"+ f)
+                    with open(char[0] +"\\"+ f+".idx", "rb") as idx:
+                        offset = int.from_bytes(idx.read(1),"big")
+                        fName = idx.read(offset).decode("utf-8")
+                        fName = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", fName).strip()
+                        print(f +", " + fName)
+                    if lastrun != 1:
+                        fr.seek(0,2)
+                        while True:
+                            fr.seek(-2,1)
+                            lineLength = int.from_bytes(fr.read(2),"little")+2
+                            fr.seek(-lineLength,1)
+                            lineTime = int.from_bytes(fr.read(4),"little")
+                            fr.seek(-4,1)
+                            if lineTime < lastrun:
+                                fr.seek(lineLength,1)
+                                break
                     lineTime = int.from_bytes(fr.read(4),"little")
-                    fr.seek(-4,1)
-                    if lineTime < lastrun:
-                        fr.seek(lineLength,1)
-                        break
-            lineTime = int.from_bytes(fr.read(4),"little")
-            while fr.tell() < fileLength:
-                fileTime = time.strftime(splitFormat,time.localtime(lineTime))
-                os.makedirs(logDirectory+"\\"+fName+"\\", exist_ok=True)
-                Path(logDirectory+"\\"+fName+"\\"+fileTime+fName+logExt).touch()
-                with open(logDirectory+"\\"+fName+"\\"+fileTime+fName+logExt,"a", errors='ignore') as fw:
-                    while True:
-                        if lineTime > runTime:
-                            runTime = lineTime
-                        currentLine = logLine()
-                        currentLine.setTime(lineTime)
-                        currentLine.isAction(fr.read(1))
-                        characterOffset = int.from_bytes(fr.read(1),"big")
-                        currentLine.setCharacter(fr.read(characterOffset).decode("utf-8", "ignore"))
-                        messageOffset = int.from_bytes(fr.read(2),"little")
-                        currentLine.setMessage(fr.read(messageOffset).decode("utf-8", "ignore"))
-                        fr.read(2) #Last 2 bytes for reverse traversal
-                        currentLine.encodeLine()
-                        fw.writelines(currentLine.encodedLine)    
-                        lineTime = int.from_bytes(fr.read(4),"little")
-                        if time.strftime(splitFormat, time.localtime(lineTime)) != fileTime:
-                            if lineTime == 0:
-                                lineTime = currentLine.messageTimeRaw
-                            break
-    except Exception:
-        traceback.print_exc()
-        continue
+                    while fr.tell() < fileLength:
+                        fileTime = time.strftime(splitFormat,time.localtime(lineTime))
+                        os.makedirs(logDirectory+char[1]+"\\", exist_ok=True)
+                        os.makedirs(logDirectory+char[1]+"\\"+fName+"\\", exist_ok=True)
+                        os.makedirs(logDirectory+char[1]+"\\"+fName+char[2]+"\\", exist_ok=True)
+                        Path(logDirectory+char[1]+"\\"+fName+char[2]+"\\"+fileTime+fName+logExt).touch()
+                        with open(logDirectory+char[1]+"\\"+fName+char[2]+"\\"+fileTime+fName+logExt,"a", errors='ignore') as fw:
+                            while True:
+                                if lineTime > runTime:
+                                    runTime = lineTime
+                                currentLine = logLine()
+                                currentLine.setTime(lineTime)
+                                currentLine.isAction(fr.read(1))
+                                characterOffset = int.from_bytes(fr.read(1),"big")
+                                currentLine.setCharacter(fr.read(characterOffset).decode("utf-8", "ignore"))
+                                messageOffset = int.from_bytes(fr.read(2),"little")
+                                currentLine.setMessage(fr.read(messageOffset).decode("utf-8", "ignore"))
+                                fr.read(2) #Last 2 bytes for reverse traversal
+                                currentLine.encodeLine()
+                                fw.writelines(currentLine.encodedLine)    
+                                lineTime = int.from_bytes(fr.read(4),"little")
+                                if time.strftime(splitFormat, time.localtime(lineTime)) != fileTime:
+                                    if lineTime == 0:
+                                        lineTime = currentLine.messageTimeRaw
+                                    break
+            except OSError:
+                traceback.print_exc()
+                continue
+    except OSError:
+                continue
 open(logDirectory +"\\lastrun.txt","a").writelines(f"{runTime}\n")
         

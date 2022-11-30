@@ -8,7 +8,7 @@ import traceback
 #                                    F-Chat 3.0 Log Parser                                     #
 #                                      Author: GyroTech                                        #
 #                                                                                              #
-#                                       1.1-8/4/2022                                           #
+#                                       1.1.1- 11/30/2022                                      #
 #                                                                                              #
 # This script parses out the database logs that fchat spits out, and then turns them into      #
 # plain text. The script automatically remembers when you last ran it, and will append to      #
@@ -22,8 +22,8 @@ import traceback
 
 
 #Variables for log locations
-flistDirectory = "C:\\Users\\USER\\AppData\\Roaming\\fchat\\data" # Link to flist log directory
-logDirectory = "C:\\Users\\USER\\Documents\\F-List Logs" # Link to where you'd like the logs to go.
+flistDirectory = "C:\\Users\\jdavis\\Documents\\New folder\\Test" # Link to flist log directory
+logDirectory = "C:\\Users\\jdavis\\Documents\\New folder\\Test2" # Link to where you'd like the logs to go.
 logExt = ".log"
 splitBy = "month" #accepts Day, Month, Year and None
 folderStructure = 1 # 0 means you're pointing directly to the character you want logs from.
@@ -126,10 +126,40 @@ for char in flistCharDirectory:
                             while True:
                                 if lineTime > runTime:
                                     runTime = lineTime
+                                # Lines are of the following format:
+                                # {time}{action}{namelength}{Name}{messagelength}{message}{backwardsTraversalLength}
+                                # time = 4 bytes, little endian, Unix time
+                                # action = 0x01 for action, 0x00 for speech
+                                # Name length = 1 byte
+                                # messagelength = 2 bytes, little endian
+                                # backwardsTraversalLength 2 bytes, little endian. Total lenght of all bytes in the line.
                                 currentLine = logLine()
                                 currentLine.setTime(lineTime)
                                 currentLine.isAction(fr.read(1))
                                 characterOffset = int.from_bytes(fr.read(1),"big")
+                                if characterOffset == 0:
+                                    #Fix for F-list occasionally leaving strings of 0x00 when the logger breaks.
+                                    while characterOffset == 0:
+                                        characterOffset = int.from_bytes(fr.read(1),"big")
+                                    inline = 1
+                                    count = 1
+                                    while inline < 3:
+                                        characterOffset = int.from_bytes(fr.read(1),"big")
+                                        if characterOffset > 1:
+                                            inline += 1
+                                        else:
+                                            inline = 0
+                                        count += 1
+                                    if count == 3:
+                                        characterOffset = int.from_bytes(fr.read(1),"big")
+                                        if characterOffset < 2: # 0 or 1 means its an action next, so our first byte is a 0.
+                                            fr.seek(-5,1)
+                                        else:
+                                            fr.seek(-4,1)
+                                    else:
+                                        fr.seek(-8,1)
+                                    lineTime = int.from_bytes(fr.read(4),"little")
+                                    continue
                                 currentLine.setCharacter(fr.read(characterOffset).decode("utf-8", "ignore"))
                                 messageOffset = int.from_bytes(fr.read(2),"little")
                                 currentLine.setMessage(fr.read(messageOffset).decode("utf-8", "ignore"))
@@ -138,7 +168,8 @@ for char in flistCharDirectory:
                                 fw.writelines(currentLine.encodedLine)    
                                 lineTime = int.from_bytes(fr.read(4),"little")
                                 if time.strftime(splitFormat, time.localtime(lineTime)) != fileTime:
-                                    if lineTime == 0:
+                                    if lineTime == 0: 
+                                        # Fix for broken slimcat log imports
                                         lineTime = currentLine.messageTimeRaw
                                     break
             except OSError:

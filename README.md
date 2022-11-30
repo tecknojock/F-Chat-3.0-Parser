@@ -20,6 +20,9 @@ Parser for F-Chat 3.0 database style logs
 Changelog: 
 
 1.0.0 : Release
+
 1.0.1: Improved the last run time so that it took the latest line logged, rather than the current time.
+
 1.1.0: Added support for multiple characters.
+
 1.1.1: Added a handler for a logging error F-chat occasionally inserts into the database.

@@ -8,7 +8,7 @@ import traceback
 #                                    F-Chat 3.0 Log Parser                                     #
 #                                      Author: GyroTech                                        #
 #                                                                                              #
-#                                       1.1.1- 11/30/2022                                      #
+#                                       1.1.2- 06/12/2023                                      #
 #                                                                                              #
 # This script parses out the database logs that fchat spits out, and then turns them into      #
 # plain text. The script automatically remembers when you last ran it, and will append to      #
@@ -26,7 +26,7 @@ flistDirectory = "C:\\Users\\jdavis\\Documents\\New folder\\Test" # Link to flis
 logDirectory = "C:\\Users\\jdavis\\Documents\\New folder\\Test2" # Link to where you'd like the logs to go.
 logExt = ".log"
 splitBy = "month" #accepts Day, Month, Year and None
-folderStructure = 1 # 0 means you're pointing directly to the character you want logs from.
+folderStructure = 2 # 0 means you're pointing directly to the character you want logs from.
                     # For 1 or 2 point to the root f-list logs folder.
                     # 1 means logs will be outputtted as {Your character}/{Other character}
                     # 2 means logs will be outputted as {Other Character}/{Your Character}
@@ -95,6 +95,8 @@ for char in flistCharDirectory:
     try:
         for f in os.listdir(char[0]):
             if re.search("\.", f):
+                continue
+            if f == "_":
                 continue
             try:
                 with open(char[0] +"\\"+ f, "rb") as fr:

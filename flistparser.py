@@ -3,12 +3,13 @@ import time
 import re
 import os
 import traceback
+import time
 
 ################################################################################################
 #                                    F-Chat 3.0 Log Parser                                     #
 #                                      Author: GyroTech                                        #
 #                                                                                              #
-#                                       1.1.4- 12/14/2025                                      #
+#                                       1.1.3- 12/14/2025                                      #
 #                                                                                              #
 # This script parses out the database logs that fchat spits out, and then turns them into      #
 # plain text. The script automatically remembers when you last ran it, and will append to      #
@@ -33,7 +34,7 @@ folderStructure = 0 # 0 means you're pointing directly to the character you want
 
 
 namepattern = r"[a-zA-Z0-9 _-]+"
-
+systemTime = int(time.time())
 
 class logLine():
     def __init__(self):
@@ -63,6 +64,7 @@ def findLineStart (fr):
     #Fix for F-list occasionally leaving strings of 0x00 when the logger breaks.
     # Improved fix is now logger mistake agnostic. It will seek until it finds a valid user name.
     try:
+        fr.seek(2,1)
         while fr.tell() < fileLength:
             characterOffset = int.from_bytes(fr.read(1),"big") #last Date byte
             if characterOffset > 1 or characterOffset == 0: 
@@ -178,7 +180,7 @@ for char in flistCharDirectory:
                                 # Lines are of the following format:
                                 # {time}{action}{namelength}{Name}{messagelength}{message}{backwardsTraversalLength}
                                 # time = 4 bytes, little endian, Unix time
-                                # action = 0x01 for action, 0x00 for speech, 0x02 for ads, and 0x03 for dice rolls
+                                # action = 0x01 for action, 0x00 for speech
                                 # Name length = 1 byte
                                 # messagelength = 2 bytes, little endian
                                 # backwardsTraversalLength 2 bytes, little endian. Total length of all bytes in the line.
@@ -211,5 +213,6 @@ for char in flistCharDirectory:
                 continue
     except OSError:
                 continue
+if runTime > systemTime:
+    runTime = systemTime
 open(logDirectory +"\\lastrun.txt","a").writelines(f"{runTime}\n")
-

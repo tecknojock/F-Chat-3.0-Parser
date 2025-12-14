@@ -26,3 +26,7 @@ Changelog:
 1.1.0: Added support for multiple characters.
 
 1.1.1: Added a handler for a logging error F-chat occasionally inserts into the database.
+
+1.1.2: Ignores console due to weird output.
+
+1.1.3: Made it so that start time is always the latest run-time if run-time exceeds. This will result in a few duplicate logs if run while f-chat is live, but better than dropping logs that come in while the application is running. Also makes the parser more robust to handle weird errors that occasionally crop up. It looks for names instead of trusting the file structure to be correct.
